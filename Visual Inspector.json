@@ -1,0 +1,362 @@
+{
+  "name": "Visual Inspector",
+  "nodes": [
+    {
+      "parameters": {
+        "resource": "image",
+        "operation": "analyze",
+        "modelId": {
+          "__rl": true,
+          "value": "models/gemini-3-flash-preview",
+          "mode": "list",
+          "cachedResultName": "models/gemini-3-flash-preview"
+        },
+        "text": "Analyze the image. Is the item damaged?\nRespond ONLY with this JSON:\n{\"damage_detected\": true/false, \"confidence\": 0-100, \"reason\": \"short explanation\"}",
+        "inputType": "binary",
+        "binaryPropertyName": "Damage_Photo",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.googleGemini",
+      "typeVersion": 1.1,
+      "position": [
+        752,
+        0
+      ],
+      "id": "1558e228-bf47-440b-88d9-2eb84f068b47",
+      "name": "Analyze an image",
+      "retryOnFail": true,
+      "waitBetweenTries": 2000,
+      "credentials": {
+        "googlePalmApi": {
+          "id": "jxvCVJjMj1sW6WKB",
+          "name": "Google Gemini(PaLM) Api account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// 1. Get the text from Gemini\n// We look for the answer inside the 'content' -> 'text' path\nconst input_text = $input.item.json.content.parts[0].text;\n\n// 2. Clean the text \n// (Remove the ```json markers so it is pure data)\nconst clean_text = input_text.replace(/```json/g, \"\").replace(/```/g, \"\").trim();\n\n// 3. Convert text to data\nconst data = JSON.parse(clean_text);\n\n// 4. The Business Logic\nlet status = \"REFUND REJECTED\";\n\nif (data.damage_detected === true && data.confidence > 80) {\n  status = \"REFUND APPROVED\";\n} else if (data.damage_detected === true) {\n  status = \"HUMAN REVIEW NEEDED\";\n}\n\n// 5. Output the result\nreturn {\n  decision: status,\n  confidence: data.confidence,\n  reason: data.reason\n};"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        944,
+        0
+      ],
+      "id": "215f85ab-e562-4a5e-b2f4-bf8c83fdf935",
+      "name": "Code in JavaScript"
+    },
+    {
+      "parameters": {
+        "operation": "append",
+        "documentId": {
+          "__rl": true,
+          "value": "1fUzaEsKVkxRTTI6A8zBYK_Cd2rXmX01Gb4UfqPV1RGU",
+          "mode": "list",
+          "cachedResultName": "Returns Dashboard",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1fUzaEsKVkxRTTI6A8zBYK_Cd2rXmX01Gb4UfqPV1RGU/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "gid=0",
+          "mode": "list",
+          "cachedResultName": "Sheet1",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1fUzaEsKVkxRTTI6A8zBYK_Cd2rXmX01Gb4UfqPV1RGU/edit#gid=0"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "AI Decision": "={{ $json.decision }}",
+            "Confidence Score": "={{ $json.confidence }}",
+            "Status": "={{ $json.reason }}",
+            "File Name": "={{ $('On form submission').item.json['Damage Photo'][0].filename }}"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "File Name",
+              "displayName": "File Name",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "AI Decision",
+              "displayName": "AI Decision",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Confidence Score",
+              "displayName": "Confidence Score",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Status",
+              "displayName": "Status",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        1744,
+        0
+      ],
+      "id": "fe575093-23da-4125-a0b0-78e1945aa17d",
+      "name": "Append row in sheet",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "RgJdT1YseJgnqGr7",
+          "name": "Google Sheets account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "08eb6a47-8192-4c03-9a21-2297a683bcf8",
+              "leftValue": "={{ $json.decision }}",
+              "rightValue": "REFUND APPROVED",
+              "operator": {
+                "type": "string",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        1248,
+        112
+      ],
+      "id": "68fd18fa-1731-44dc-9d4f-143411b15d13",
+      "name": "If"
+    },
+    {
+      "parameters": {
+        "sendTo": "Huzaifaasif9090@gmail.com",
+        "subject": "={{ $('On form submission').item.json['Resolution Type'] }}",
+        "message": "={{ $('On form submission').item.json['Damage Photo'][0].filename }} {{ $('On form submission').item.json['Order Number'] }} \"We give you the refund.\"",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.2,
+      "position": [
+        2064,
+        0
+      ],
+      "id": "16d0daa9-a821-458e-b918-8b88c816f515",
+      "name": "Send a message",
+      "webhookId": "6bbf6c7e-05b6-403e-b619-107629a95f89",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "6BVKEWgqlAqLzbNC",
+          "name": "Gmail account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "sendTo": "huzaifaasif9090@gmail.com",
+        "subject": "=Update About: {{ $('On form submission').item.json['Resolution Type'] }}",
+        "message": "There is no issue from us. If you want further details contact us manually.",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.2,
+      "position": [
+        1600,
+        224
+      ],
+      "id": "8e1eae97-6061-4243-b573-d7c4405b99f1",
+      "name": "Send a message1",
+      "webhookId": "597dc29c-44cd-4073-be58-57bf2d89da74",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "6BVKEWgqlAqLzbNC",
+          "name": "Gmail account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "formTitle": "Return Request Portal",
+        "formFields": {
+          "values": [
+            {
+              "fieldLabel": "Damage Photo",
+              "fieldType": "file",
+              "requiredField": true
+            },
+            {
+              "fieldLabel": "Resolution Type",
+              "fieldType": "dropdown",
+              "fieldOptions": {
+                "values": [
+                  {
+                    "option": "Refund"
+                  },
+                  {
+                    "option": "Exchange"
+                  }
+                ]
+              },
+              "requiredField": true
+            },
+            {
+              "fieldLabel": "Order Number",
+              "requiredField": true
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.formTrigger",
+      "typeVersion": 2.5,
+      "position": [
+        512,
+        0
+      ],
+      "id": "962ab71a-63f3-488b-90e0-6c63d6f1c15c",
+      "name": "On form submission",
+      "webhookId": "c5e8a42c-8b40-4386-9269-e0c44a92ae5d"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://httpbin.org/post",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"action\": \"refund_processed\",\n  \"amount\": 20.00,\n  \"order_id\": \"{{ $('On form submission').item.json['Order Number'] }}\",\n  \"status\": \"success\"\n}\n",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.3,
+      "position": [
+        1456,
+        16
+      ],
+      "id": "477e02c9-b788-42c7-a11c-c74b1b5d5059",
+      "name": "HTTP Request"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Analyze an image": {
+      "main": [
+        [
+          {
+            "node": "Code in JavaScript",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code in JavaScript": {
+      "main": [
+        [
+          {
+            "node": "If",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If": {
+      "main": [
+        [
+          {
+            "node": "HTTP Request",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Send a message1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Append row in sheet": {
+      "main": [
+        [
+          {
+            "node": "Send a message",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "On form submission": {
+      "main": [
+        [
+          {
+            "node": "Analyze an image",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "HTTP Request": {
+      "main": [
+        [
+          {
+            "node": "Append row in sheet",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "availableInMCP": false
+  },
+  "versionId": "37041898-b5da-4a8e-8ce6-431e9a6f9391",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "6ae1fe2e6b3573735f4b2e9f3c14fc80aabbbdb21526e7a41578de36510b91aa"
+  },
+  "id": "YtT_p01O43rbEoo3WXTvC",
+  "tags": []
+}
